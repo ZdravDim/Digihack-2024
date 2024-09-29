@@ -24,17 +24,28 @@ interface Metrics {
   temperature: number;
   heart_rate: number;
   oxygen_saturation: number;
-  blood_pressure_systalic: number;
-  blood_pressure_diastalic: number;
+  blood_pressure_systolic: number;
+  blood_pressure_diastolic: number;
   blood_sugar: number;
-  respiration_rate: number;
+  respiratory_rate: number;
   needs_medics: boolean;
 }
 
+document.addEventListener('keydown', function(event) {
+  if (event.key >= '1' && event.key <= '8') {
+    const index = parseInt(event.key) - 1;
+    modalData = latestMetrics[index];
+    modalIndex = index;
+    modalVisible = true;
+  }
+});
+
 let persons: Person[] = [];
 let panels: THREE.Mesh[] = [];
-let initialized: boolean = false;
 let latestMetrics: Metrics[] = [];
+let modalVisible: boolean = false;
+let modalData: Metrics | undefined = undefined;
+let modalIndex: number = -1;
 
 @Component({
   selector: 'app-floor',
@@ -53,6 +64,37 @@ export class FloorComponent implements OnInit {
     x: 0,
     y: 0
   };
+
+  getModalVisible(): boolean {
+    return modalVisible;
+  }
+
+  closeModal(): void {
+    modalVisible = false;
+  }
+
+  getModalData(): Metrics {
+    return modalData!;
+  }
+
+  getModalIndex(): number {
+    return modalIndex;
+  }
+
+  getPerson() {
+    return persons[modalIndex];
+  }
+
+  getStateColor(state: string): string {
+    switch (state) {
+      case 'good':
+        return 'green';
+      case 'needs medics':
+        return 'orange';
+      default:
+        return 'red';
+    }
+  }
 
   ngOnInit(): void {
     this.setupWebSocket();
@@ -78,8 +120,9 @@ export class FloorComponent implements OnInit {
       }
     
       latestMetrics = json_data['array'];
+      if (modalIndex >= 0) modalData = latestMetrics[modalIndex];
 
-      if (panels.length == 8) for (let i = 0; i < 8; ++i) {
+      if (panels.length == 8 && latestMetrics.length == 8) for (let i = 0; i < 8; ++i) {
         const newColor = new THREE.Color('#00ff00');
 
         switch (latestMetrics[i].state) {
