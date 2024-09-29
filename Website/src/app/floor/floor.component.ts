@@ -1,5 +1,7 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import * as THREE from 'three';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
 @Component({
   selector: 'app-floor',
@@ -18,8 +20,12 @@ export class FloorComponent implements OnInit {
     x: 0,
     y: 0
   };
+  names: string[] = [];
+  surnames: string[] = [];
 
   ngOnInit(): void {
+    this.names = ['Alice', 'Benjamin', 'Charlotte', 'David', 'Eva', 'Frank', 'Grace', 'Henry'];
+    this.surnames = ['Anderson', 'Brown', 'Clark', 'Davis', 'Evans', 'Foster', 'Gray', 'Hill'];    
     this.initThreeJsScene();
   }
 
@@ -72,7 +78,6 @@ export class FloorComponent implements OnInit {
     const wallMaterial = new THREE.MeshStandardMaterial({ map: wallTexture });
 
     // Materials for other objects
-    const bedMaterial = new THREE.MeshStandardMaterial({ color: 0x99aaff });
     const chairMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 });
 
     // Create tile texture using canvas
@@ -205,14 +210,14 @@ export class FloorComponent implements OnInit {
       pillow.receiveShadow = true;
 
       // Create sheet fold (a thin, slightly larger layer over the bedding)
-      const behindGeometry = new THREE.BoxGeometry(1.5, 0.2, 0.5); // Slightly larger than the mattress
+      const behindGeometry = new THREE.BoxGeometry(1.5, 0.15, 0.45); // Slightly larger than the mattress
       const behindMaterial = new THREE.MeshStandardMaterial({
         color: 0xffffff, // White color for the sheet
         side: THREE.DoubleSide, // Visible from both sides
       });
       const behind = new THREE.Mesh(behindGeometry, behindMaterial);
       behind.rotation.x = -Math.PI / 2; // Lay flat like a blanket
-      behind.position.set(x, y + 0.4, z + 1.58); // Position it just above the mattress
+      behind.position.set(x, y + 0.35, z + 1.58); // Position it just above the mattress
       behind.castShadow = true;
       behind.receiveShadow = true;
       this.scene.add(behind);
@@ -220,7 +225,6 @@ export class FloorComponent implements OnInit {
       this.scene.add(pillow);
     };
     
-
     const createChair = (x: number, y: number, z: number) => {
       const chairGeometry = new THREE.BoxGeometry(0.7, 0.5, 0.7);
       const chair = new THREE.Mesh(chairGeometry, chairMaterial);
@@ -230,6 +234,57 @@ export class FloorComponent implements OnInit {
       this.scene.add(chair);
     };
 
+    // Function to create a panel with text
+    const createPanelWithText = (name: string, surname: string, x: number, y: number, z: number) => {
+      const fontLoader = new FontLoader();
+
+      fontLoader.load('assets/fonts/helvetiker_regular.typeface.json', (font) => {
+        // Create a panel (PlaneGeometry)
+        const panelGeometry = new THREE.PlaneGeometry(1.5, 3);
+        const panelMaterial = new THREE.MeshStandardMaterial({ color: 0xeeeeee, side: THREE.DoubleSide });
+        const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+        panel.rotation.x = -Math.PI / 2; // Lay the panel flat
+        panel.position.set(x, y, z);
+        this.scene.add(panel);
+
+        // Create text geometry
+        const nameGeometry = new TextGeometry(name, {
+          font: font,
+          size: 0.35, // Text size
+          height: 0.05, // Text depth
+          curveSegments: 12,
+          bevelEnabled: false
+        });
+
+        // Create text geometry
+        const surnameGeometry = new TextGeometry(surname, {
+          font: font,
+          size: 0.35, // Text size
+          height: 0.05, // Text depth
+          curveSegments: 12,
+          bevelEnabled: false
+        });
+
+        // Create the text material
+        const textMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 }); // Black text color
+        const nameMesh = new THREE.Mesh(nameGeometry, textMaterial);
+        const surnameMesh = new THREE.Mesh(surnameGeometry, textMaterial);
+
+        // Position the text slightly above the panel to prevent z-fighting
+        nameMesh.rotation.x = -Math.PI / 2;
+        nameMesh.rotation.z = +Math.PI / 2;
+        nameMesh.position.set(x - 0.15, y + 0.1, z + 1.1); // Adjust position to place text on the panel
+
+        surnameMesh.rotation.x = -Math.PI / 2;
+        surnameMesh.rotation.z = +Math.PI / 2;
+        surnameMesh.position.set(x + 0.45, y + 0.1, z + 1.1); // Adjust position to place text on the panel
+
+        // Add the text to the scene
+        this.scene.add(nameMesh);
+        this.scene.add(surnameMesh);
+      });
+    }
+
     // Add ambient light for overall scene brightness
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     this.scene.add(ambientLight);
@@ -238,7 +293,7 @@ export class FloorComponent implements OnInit {
     light.intensity = 1.5;
 
     // Create a room with two beds placed side by side (parallel)
-    const createRoom = (xOffset: number, zOffset: number) => {
+    const createRoom = (xOffset: number, zOffset: number, name1: string, surname1: string, name2: string, surname2: string) => {
       const roomSize = 8; // Size of each room
       const wallThickness = 0.2;
 
@@ -251,23 +306,27 @@ export class FloorComponent implements OnInit {
       createWall(xOffset + roomSize / 2, 1, zOffset, wallThickness, 2, roomSize + wallThickness); // Right wall
 
       // Place two beds side by side (parallel)
-      createBed(xOffset - 2.5, 0.1, zOffset - 1); // First bed on the left
-      createBed(xOffset + 2.5, 0.1, zOffset - 1); // Second bed on the right
-
-      // Place a chair between the two beds
-      createChair(xOffset - 0.7, 0.5, zOffset - 2); // Chair in the room
-      createChair(xOffset + 0.7, 0.5, zOffset - 2); // Chair in the room
+      createBed(xOffset - 2.5, 0.1, zOffset - 1.4); // First bed on the left
+      createChair(xOffset - 0.7, 0.5, zOffset - 2.4); // Chair in the room
+      createPanelWithText(name1, surname1, xOffset - 2.5, 0.1, zOffset + 2);
+      
+      createBed(xOffset + 1, 0.1, zOffset - 1.4); // Second bed on the right
+      createChair(xOffset + 2.7, 0.5, zOffset - 2.4); // Chair in the room
+      createPanelWithText(name2, surname2, xOffset + 1, 0.1, zOffset + 2);
     };
 
     // Create a 2x2 grid of rooms with two beds each, centered at (0, 0)
     const roomSize = 8; // Each room is 8 units wide and tall
     const gridOffset = (roomSize / 2); // Offset to center the grid
 
+    let index = 0; 
+
     for (let i = 0; i <= 1; i++) { // 2x2 grid
       for (let j = 0; j <= 1; j++) {
         const xOffset = (i * roomSize) - gridOffset;
         const zOffset = (j * roomSize) - gridOffset;
-        createRoom(xOffset, zOffset);
+        createRoom(xOffset, zOffset, this.names[2 * index], this.surnames[2 * index], this.names[2 * index + 1], this.surnames[2 * index + 1]);
+        ++index;
       }
     }
 
