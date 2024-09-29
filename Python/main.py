@@ -1,7 +1,6 @@
 import asyncio
 import websockets
 
-
 # Define the WebSocket server handler
 async def handle_client(websocket, path):
     print(f"Client connected: {path}")
@@ -17,7 +16,6 @@ async def handle_client(websocket, path):
     except websockets.ConnectionClosedOK:
         print("Client disconnected")
 
-
 # Start the WebSocket server
 async def start_server():
     # Specify the host and port for the WebSocket server
@@ -27,6 +25,5 @@ async def start_server():
     await server.wait_closed()
 
 
-# Run the event loop to keep the server running
 if __name__ == "__main__":
     asyncio.run(start_server())
