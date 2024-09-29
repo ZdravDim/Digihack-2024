@@ -3,6 +3,39 @@ import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
+const ws = new WebSocket('ws://localhost:8000');
+
+interface Person {
+  name: string;
+  surname: string;
+  pid: string;
+  age: number;
+  heart_desease: boolean;
+  married: boolean;
+  work_type: string;
+  residence_type: string;
+  avg_glucose: number;
+  bmi: number;
+  smoker: boolean;
+}
+
+interface Metrics {
+  state: string;
+  temperature: number;
+  heart_rate: number;
+  oxygen_saturation: number;
+  blood_pressure_systalic: number;
+  blood_pressure_diastalic: number;
+  blood_sugar: number;
+  respiration_rate: number;
+  needs_medics: boolean;
+}
+
+let persons: Person[] = [];
+let panels: THREE.Mesh[] = [];
+let initialized: boolean = false;
+let latestMetrics: Metrics[] = [];
+
 @Component({
   selector: 'app-floor',
   templateUrl: './floor.component.html',
@@ -20,16 +53,50 @@ export class FloorComponent implements OnInit {
     x: 0,
     y: 0
   };
-  names: string[] = [];
-  surnames: string[] = [];
 
   ngOnInit(): void {
-    this.names = ['Alice', 'Benjamin', 'Charlotte', 'David', 'Eva', 'Frank', 'Grace', 'Henry'];
-    this.surnames = ['Anderson', 'Brown', 'Clark', 'Davis', 'Evans', 'Foster', 'Gray', 'Hill'];    
+    this.setupWebSocket();
     this.initThreeJsScene();
   }
+  
+  setupWebSocket(): void {
+    ws.onerror = (error) => {
+      console.error('WebSocket error: ', error);
+    };
+    
+    ws.onopen = function open() {
+      console.log('connected');
+    };
+    
+    ws.onmessage = function message(event) {
+    
+      const json_data = JSON.parse(event.data);
+    
+      if (json_data.type === 0) {
+        persons = json_data['array'];
+        return;
+      }
+    
+      latestMetrics = json_data['array'];
 
-  initThreeJsScene(): void {
+      if (panels.length == 8) for (let i = 0; i < 8; ++i) {
+        const newColor = new THREE.Color('#00ff00');
+
+        switch (latestMetrics[i].state) {
+          case 'critical':
+            newColor.set('#ff0000'); // Red color
+            break;
+          case 'needs medics':
+            newColor.set('#ffff00'); // Yellow color
+            break;
+        }
+        (panels[i].material as THREE.MeshStandardMaterial).color.set(newColor);
+      }
+      
+    };
+  }
+
+  async initThreeJsScene(): Promise<void> {
     const container = this.canvasContainer.nativeElement;
 
     // Scene
@@ -235,7 +302,7 @@ export class FloorComponent implements OnInit {
     };
 
     // Function to create a panel with text
-    const createPanelWithText = (name: string, surname: string, x: number, y: number, z: number) => {
+    const createPanelWithText = (person: Person, x: number, y: number, z: number) => {
       const fontLoader = new FontLoader();
 
       fontLoader.load('assets/fonts/helvetiker_regular.typeface.json', (font) => {
@@ -243,12 +310,14 @@ export class FloorComponent implements OnInit {
         const panelGeometry = new THREE.PlaneGeometry(1.5, 3);
         const panelMaterial = new THREE.MeshStandardMaterial({ color: 0xeeeeee, side: THREE.DoubleSide });
         const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+        (panel as any).person_id = person.pid;
+        panels.push(panel);
         panel.rotation.x = -Math.PI / 2; // Lay the panel flat
         panel.position.set(x, y, z);
         this.scene.add(panel);
 
         // Create text geometry
-        const nameGeometry = new TextGeometry(name, {
+        const nameGeometry = new TextGeometry(person.name, {
           font: font,
           size: 0.35, // Text size
           height: 0.05, // Text depth
@@ -257,7 +326,7 @@ export class FloorComponent implements OnInit {
         });
 
         // Create text geometry
-        const surnameGeometry = new TextGeometry(surname, {
+        const surnameGeometry = new TextGeometry(person.surname, {
           font: font,
           size: 0.35, // Text size
           height: 0.05, // Text depth
@@ -293,7 +362,7 @@ export class FloorComponent implements OnInit {
     light.intensity = 1.5;
 
     // Create a room with two beds placed side by side (parallel)
-    const createRoom = (xOffset: number, zOffset: number, name1: string, surname1: string, name2: string, surname2: string) => {
+    const createRoom = (xOffset: number, zOffset: number, person1: Person, person2: Person) => {
       const roomSize = 8; // Size of each room
       const wallThickness = 0.2;
 
@@ -308,11 +377,11 @@ export class FloorComponent implements OnInit {
       // Place two beds side by side (parallel)
       createBed(xOffset - 2.5, 0.1, zOffset - 1.4); // First bed on the left
       createChair(xOffset - 0.7, 0.5, zOffset - 2.4); // Chair in the room
-      createPanelWithText(name1, surname1, xOffset - 2.5, 0.1, zOffset + 2);
+      createPanelWithText(person1, xOffset - 2.5, 0.1, zOffset + 2);
       
       createBed(xOffset + 1, 0.1, zOffset - 1.4); // Second bed on the right
       createChair(xOffset + 2.7, 0.5, zOffset - 2.4); // Chair in the room
-      createPanelWithText(name2, surname2, xOffset + 1, 0.1, zOffset + 2);
+      createPanelWithText(person2, xOffset + 1, 0.1, zOffset + 2);
     };
 
     // Create a 2x2 grid of rooms with two beds each, centered at (0, 0)
@@ -321,11 +390,23 @@ export class FloorComponent implements OnInit {
 
     let index = 0; 
 
+    await new Promise<void>((resolve) => {
+      const checkPersonsLength = () => {
+        if (persons.length === 8) {
+          resolve();
+        } else {
+          setTimeout(checkPersonsLength, 100);
+        }
+      };
+
+      checkPersonsLength();
+    });
+
     for (let i = 0; i <= 1; i++) { // 2x2 grid
       for (let j = 0; j <= 1; j++) {
         const xOffset = (i * roomSize) - gridOffset;
         const zOffset = (j * roomSize) - gridOffset;
-        createRoom(xOffset, zOffset, this.names[2 * index], this.surnames[2 * index], this.names[2 * index + 1], this.surnames[2 * index + 1]);
+        createRoom(xOffset, zOffset, persons[2 * index], persons[2 * index + 1]);
         ++index;
       }
     }

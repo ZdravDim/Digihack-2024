@@ -34,7 +34,6 @@ def load_dataframes():
 # Send patient vitals every 2 seconds
 async def send_patient_data(websocket):
     global sent_data_counter
-    await websocket.send("Welcome to the Patient Data WebSocket server!")
     while True:
         new_data = []
         for patient_df in patient_dataframes:
