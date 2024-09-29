@@ -1,11 +1,20 @@
 import asyncio
 import json
+
 import pandas as pd
+import websockets
 from websockets.server import serve
 
 PATIENT_NUMBER = 8
 sent_data_counter = 0
 patient_dataframes = []
+
+async def initial_patient_data(websocket):
+    filename = 'data/patients-info.csv'
+    patients_df = pd.read_csv(filename)
+    message = patients_df.to_json(orient='records')
+    print("Inital data setup")
+    await websocket.send(message)
 
 # Load the CSV data for a specific patient
 def load_patient_data(patient_id):
@@ -22,7 +31,7 @@ def load_dataframes():
 # Send patient vitals every 2 seconds
 async def send_patient_data(websocket):
     global sent_data_counter
-
+    await websocket.send("Welcome to the Patient Data WebSocket server!")
     while True:
         new_data = []
         for patient_df in patient_dataframes:
@@ -34,12 +43,10 @@ async def send_patient_data(websocket):
         # Convert to a JSON string to send via WebSocket
         message = json.dumps(new_data)
         await websocket.send(message)
-        print(f"Sent: {message}")
 
         # Wait for 2 seconds before sending the next update
         await asyncio.sleep(2)
         sent_data_counter += 1
-
 
 def calculate_critical_bar(df):
     chunk_size = 60  # Each block is 60 rows
@@ -73,11 +80,17 @@ def get_daily_report():
         critical_bars_report.append(calculate_critical_bar(patient_df))
     return critical_bars_report
 
+async def handle_connection(websocket, path):
+    await initial_patient_data(websocket)
+    await send_patient_data(websocket)
+
 async def main():
+
+    # asyncio.get_event_loop().run_until_complete(start_server)
+    print("WebSocket server is running...")
+
     load_dataframes()  # Load all patient data before starting the server
-    async with serve(send_patient_data, "localhost", 8000):
+    async with serve(handle_connection, "localhost", 8000):
         await asyncio.Future()  # Run forever
 
-# Start the WebSocket server
 asyncio.run(main())
-
