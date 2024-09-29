@@ -55,7 +55,7 @@ async def send_patient_data(websocket):
         sent_data_counter += 1
 
 async def send_stroke_prediction(websocket):
-    await websocket.send({
+    await websocket.send(json.dumps({
         "type": 3,
         "array": [
             0.002337,
@@ -67,7 +67,7 @@ async def send_stroke_prediction(websocket):
             0.000027,
             0.209939
         ]
-    })
+    }))
 
 def calculate_critical_bar(df):
     chunk_size = 60  # Each block is 60 rows
