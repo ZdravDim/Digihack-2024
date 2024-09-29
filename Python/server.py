@@ -3,6 +3,7 @@ import json
 
 import pandas as pd
 import websockets
+from matplotlib.font_manager import json_dump
 from websockets.server import serve
 
 PATIENT_NUMBER = 8
@@ -12,9 +13,11 @@ patient_dataframes = []
 async def initial_patient_data(websocket):
     filename = 'data/patients-info.csv'
     patients_df = pd.read_csv(filename)
-    message = patients_df.to_json(orient='records')
-    print("Inital data setup")
-    await websocket.send(message)
+    patients_df = patients_df.to_dict(orient='records')
+    await websocket.send(json.dumps({
+        "type": 0,
+        "array": patients_df
+    }))
 
 # Load the CSV data for a specific patient
 def load_patient_data(patient_id):
@@ -41,8 +44,10 @@ async def send_patient_data(websocket):
             new_data.append(data)
 
         # Convert to a JSON string to send via WebSocket
-        message = json.dumps(new_data)
-        await websocket.send(message)
+        await websocket.send(json.dumps({
+            "type": 1,
+            "array": new_data
+        }))
 
         # Wait for 2 seconds before sending the next update
         await asyncio.sleep(2)
