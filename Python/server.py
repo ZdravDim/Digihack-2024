@@ -3,6 +3,8 @@ import json
 
 import pandas as pd
 import websockets
+import websockets.protocol
+from fontTools.misc.cython import returns
 from matplotlib.font_manager import json_dump
 from websockets.server import serve
 
@@ -52,6 +54,21 @@ async def send_patient_data(websocket):
         await asyncio.sleep(2)
         sent_data_counter += 1
 
+async def send_stroke_prediction(websocket):
+    await websocket.send({
+        "type": 3,
+        "array": [
+            0.002337,
+            0.097671,
+            0.709647,
+            0.016222,
+            0.001912,
+            0.869103,
+            0.000027,
+            0.209939
+        ]
+    })
+
 def calculate_critical_bar(df):
     chunk_size = 60  # Each block is 60 rows
     total_chunks = 24  # We need to calculate for 24 chunks
@@ -76,17 +93,29 @@ def calculate_critical_bar(df):
 
         # Store the critical_bar value for this chunk
         critical_bar_values.append(critical_bar)
+
     return critical_bar_values
 
-def get_daily_report():
+async def get_daily_report(websocket):
     critical_bars_report = []
     for patient_df in patient_dataframes:
         critical_bars_report.append(calculate_critical_bar(patient_df))
+
+    await websocket.send(json.dumps({
+        "type": 2,
+        "array": critical_bars_report
+    }))
     return critical_bars_report
 
 async def handle_connection(websocket, path):
-    await initial_patient_data(websocket)
-    await send_patient_data(websocket)
+    try:
+        await initial_patient_data(websocket)
+        await get_daily_report(websocket)  # Send the critical bar report
+        await send_stroke_prediction(websocket)
+        await send_patient_data(websocket)  # Start sending patient data periodically
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        await websocket.close()
 
 async def main():
 
