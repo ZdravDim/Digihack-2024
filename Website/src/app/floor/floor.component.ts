@@ -46,6 +46,7 @@ let latestMetrics: Metrics[] = [];
 let modalVisible: boolean = false;
 let modalData: Metrics | undefined = undefined;
 let modalIndex: number = -1;
+let predictions: number[] = [];
 
 @Component({
   selector: 'app-floor',
@@ -85,6 +86,11 @@ export class FloorComponent implements OnInit {
     return persons[modalIndex];
   }
 
+  getPrediction(): number {
+    if (predictions.length == 0) return 0.2;
+    return predictions[modalIndex];
+  }
+
   getStateColor(state: string): string {
     switch (state) {
       case 'good':
@@ -119,22 +125,32 @@ export class FloorComponent implements OnInit {
         return;
       }
     
-      latestMetrics = json_data['array'];
-      if (modalIndex >= 0) modalData = latestMetrics[modalIndex];
+      if (json_data.type === 1) {
+        latestMetrics = json_data['array'];
+        if (modalIndex >= 0) modalData = latestMetrics[modalIndex];
 
-      if (panels.length == 8 && latestMetrics.length == 8) for (let i = 0; i < 8; ++i) {
-        const newColor = new THREE.Color('#00ff00');
+        if (panels.length == 8 && latestMetrics.length == 8) for (let i = 0; i < 8; ++i) {
+          const newColor = new THREE.Color('#00ff00');
 
-        switch (latestMetrics[i].state) {
-          case 'critical':
-            newColor.set('#ff0000'); // Red color
-            break;
-          case 'needs medics':
-            newColor.set('#ffff00'); // Yellow color
-            break;
+          switch (latestMetrics[i].state) {
+            case 'critical':
+              newColor.set('#ff0000'); // Red color
+              break;
+            case 'needs medics':
+              newColor.set('#ffff00'); // Yellow color
+              break;
+          }
+          (panels[i].material as THREE.MeshStandardMaterial).color.set(newColor);
         }
-        (panels[i].material as THREE.MeshStandardMaterial).color.set(newColor);
+        return;
       }
+
+      else if (json_data.type === 2) {
+        
+        return;
+      }
+
+      predictions = json_data['array'];
       
     };
   }

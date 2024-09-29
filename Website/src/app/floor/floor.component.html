@@ -3,30 +3,39 @@
 <div tabindex="0" style="width: 100%; height: 100vh;">
     <div class="custom-modal-overlay" *ngIf="getModalVisible()">
       <div class="custom-modal">
-        <div class="custom-modal-header">
-          <h5 class="custom-modal-title">Patient information</h5>
-          <button class="close" (click)="closeModal()">×</button>
-        </div>
+
         <div class="custom-modal-body d-flex flex-column">
             <div class="d-flex flex-row">
-                <img src="assets/user.webp" height="100px" width="100px">
+                <img src="assets/user.webp" height="100px" width="100px" class="me-3 mb-3">
                 <div>
                     <div>Name: {{ getPerson().name }}</div>
                     <div>Surname: {{ getPerson().surname }}</div>
                     <div>Age: {{ getPerson().age }}</div>
                     <div>State: <span [ngStyle]="{ color: getStateColor(getModalData().state) }">{{ getModalData().state }}</span></div>
-
-                </div>
-                <div>
-                    EKG
                 </div>
             </div>
+
+            <div>Hearth stroke risk: {{ getPrediction().toFixed(3) }}</div>
+            <div class="scale-item d-inline bg-danger" [style.width.%]="getPrediction() * 100"></div>
+
             <div>Hearth rate: {{ getModalData().heart_rate.toFixed(3) }}</div>
+            <div class="scale-item d-inline" [style.width.%]="(getModalData().heart_rate - 60) / 100 * 100"></div>
+
             <div>Oxygen saturation: {{ getModalData().oxygen_saturation.toFixed(3) }}</div>
+            <div class="scale-item d-inline" [style.width.%]="(getModalData().oxygen_saturation - 80) / 20 * 100"></div>
+
             <div>Blood pressure systalic: {{ getModalData().blood_pressure_systolic.toFixed(3) }}</div>
+            <div class="scale-item d-inline" [style.width.%]="(getModalData().blood_pressure_systolic - 90) / 100 * 100"></div>
+
             <div>Blood pressure dialistic: {{ getModalData().blood_pressure_diastolic.toFixed(3) }}</div>
+            <div class="scale-item d-inline" [style.width.%]="(getModalData().blood_pressure_diastolic - 60) / 70 * 100"></div>
+
             <div>Blood sugar: {{ getModalData().blood_sugar.toFixed(3) }}</div>
+            <div class="scale-item d-inline" [style.width.%]="(getModalData().blood_sugar - 70) / 230 * 100"></div>
+
             <div>Respiration rate: {{ getModalData().respiratory_rate.toFixed(3) }}</div>
+            <div class="scale-item d-inline" [style.width.%]="(getModalData().respiratory_rate - 12) / 23 * 100"></div>
+
             <div>Needs medics: {{ getModalData().needs_medics ? "true" : "false" }}</div>
         </div>
         <div class="custom-modal-footer">
@@ -36,3 +45,4 @@
     </div>
   </div>
   
+<p id="gore-levo">Broj preporucenih radnika: 3</p>

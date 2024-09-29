@@ -75,3 +75,23 @@
     line-height: 24px;
   }
   
+
+  .scale-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .scale-item {
+    background-color: steelblue;
+    height: 30px;
+    text-align: center;
+    color: white;
+  }
+
+  #gore-levo {
+    position: absolute;
+    top: 0;
+    left: 5px;
+    color: green;
+  }
